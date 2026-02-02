@@ -474,29 +474,29 @@
             }
         }
 
-        // Deep bell for start/end
+        // Deep bell for start/end (frequencies raised for phone speakers)
         function playDeepBell() {
             initAudio();
             const now = audioContext.currentTime;
             
-            // Main tone
+            // Main tone - raised from 180Hz to 340Hz for phone speakers
             const osc1 = audioContext.createOscillator();
             const gain1 = audioContext.createGain();
             osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(180, now);
-            osc1.frequency.exponentialRampToValueAtTime(150, now + 3);
-            gain1.gain.setValueAtTime(0.4, now);
+            osc1.frequency.setValueAtTime(340, now);
+            osc1.frequency.exponentialRampToValueAtTime(280, now + 3);
+            gain1.gain.setValueAtTime(0.7, now);
             gain1.gain.exponentialRampToValueAtTime(0.001, now + 4);
             osc1.connect(gain1);
             gain1.connect(audioContext.destination);
             
-            // Harmonic overtone
+            // Second harmonic
             const osc2 = audioContext.createOscillator();
             const gain2 = audioContext.createGain();
             osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(360, now);
-            osc2.frequency.exponentialRampToValueAtTime(300, now + 2);
-            gain2.gain.setValueAtTime(0.15, now);
+            osc2.frequency.setValueAtTime(680, now);
+            osc2.frequency.exponentialRampToValueAtTime(560, now + 2);
+            gain2.gain.setValueAtTime(0.4, now);
             gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
             osc2.connect(gain2);
             gain2.connect(audioContext.destination);
@@ -505,52 +505,76 @@
             const osc3 = audioContext.createOscillator();
             const gain3 = audioContext.createGain();
             osc3.type = 'sine';
-            osc3.frequency.setValueAtTime(540, now);
-            gain3.gain.setValueAtTime(0.08, now);
+            osc3.frequency.setValueAtTime(1020, now);
+            gain3.gain.setValueAtTime(0.2, now);
             gain3.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+            osc3.connect(gain3);
+            gain3.connect(audioContext.destination);
+            
+            // Add a subtle attack transient for more "bell strike" feel
+            const osc4 = audioContext.createOscillator();
+            const gain4 = audioContext.createGain();
+            osc4.type = 'triangle';
+            osc4.frequency.setValueAtTime(1800, now);
+            gain4.gain.setValueAtTime(0.3, now);
+            gain4.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc4.connect(gain4);
+            gain4.connect(audioContext.destination);
+            
+            osc1.start(now);
+            osc2.start(now);
+            osc3.start(now);
+            osc4.start(now);
+            osc1.stop(now + 4);
+            osc2.stop(now + 2.5);
+            osc3.stop(now + 1.5);
+            osc4.stop(now + 0.15);
+            
+            triggerBellFlash();
+        }
+
+        // Light bell for intervals (increased volume)
+        function playLightBell() {
+            initAudio();
+            const now = audioContext.currentTime;
+            
+            // Main tone - higher, lighter
+            const osc1 = audioContext.createOscillator();
+            const gain1 = audioContext.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(620, now);
+            osc1.frequency.exponentialRampToValueAtTime(580, now + 1.5);
+            gain1.gain.setValueAtTime(0.5, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 2);
+            osc1.connect(gain1);
+            gain1.connect(audioContext.destination);
+            
+            // Overtone
+            const osc2 = audioContext.createOscillator();
+            const gain2 = audioContext.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(930, now);
+            gain2.gain.setValueAtTime(0.25, now);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+            osc2.connect(gain2);
+            gain2.connect(audioContext.destination);
+            
+            // High shimmer
+            const osc3 = audioContext.createOscillator();
+            const gain3 = audioContext.createGain();
+            osc3.type = 'sine';
+            osc3.frequency.setValueAtTime(1240, now);
+            gain3.gain.setValueAtTime(0.15, now);
+            gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
             osc3.connect(gain3);
             gain3.connect(audioContext.destination);
             
             osc1.start(now);
             osc2.start(now);
             osc3.start(now);
-            osc1.stop(now + 4);
-            osc2.stop(now + 2.5);
-            osc3.stop(now + 1.5);
-            
-            triggerBellFlash();
-        }
-
-        // Light bell for intervals
-        function playLightBell() {
-            initAudio();
-            const now = audioContext.currentTime;
-            
-            // Higher, lighter tone
-            const osc1 = audioContext.createOscillator();
-            const gain1 = audioContext.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(520, now);
-            osc1.frequency.exponentialRampToValueAtTime(480, now + 1.5);
-            gain1.gain.setValueAtTime(0.2, now);
-            gain1.gain.exponentialRampToValueAtTime(0.001, now + 2);
-            osc1.connect(gain1);
-            gain1.connect(audioContext.destination);
-            
-            // Soft overtone
-            const osc2 = audioContext.createOscillator();
-            const gain2 = audioContext.createGain();
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(780, now);
-            gain2.gain.setValueAtTime(0.08, now);
-            gain2.gain.exponentialRampToValueAtTime(0.001, now + 1);
-            osc2.connect(gain2);
-            gain2.connect(audioContext.destination);
-            
-            osc1.start(now);
-            osc2.start(now);
             osc1.stop(now + 2);
-            osc2.stop(now + 1);
+            osc2.stop(now + 1.2);
+            osc3.stop(now + 0.8);
             
             triggerBellFlash();
         }
