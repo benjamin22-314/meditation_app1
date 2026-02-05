@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stillness-v2';
+const CACHE_NAME = 'stillness-v3';
 const ASSETS = [
   '/',
   '/index.html',

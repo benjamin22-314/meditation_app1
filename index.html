@@ -474,108 +474,119 @@
             }
         }
 
-        // Deep bell for start/end (frequencies raised for phone speakers)
-        function playDeepBell() {
+        // Loud gong for start/end -- 8 oscillators with inharmonic partials
+        function playGong() {
             initAudio();
             const now = audioContext.currentTime;
-            
-            // Main tone - raised from 180Hz to 340Hz for phone speakers
-            const osc1 = audioContext.createOscillator();
-            const gain1 = audioContext.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(340, now);
-            osc1.frequency.exponentialRampToValueAtTime(280, now + 3);
-            gain1.gain.setValueAtTime(0.7, now);
-            gain1.gain.exponentialRampToValueAtTime(0.001, now + 4);
-            osc1.connect(gain1);
-            gain1.connect(audioContext.destination);
-            
-            // Second harmonic
-            const osc2 = audioContext.createOscillator();
-            const gain2 = audioContext.createGain();
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(680, now);
-            osc2.frequency.exponentialRampToValueAtTime(560, now + 2);
-            gain2.gain.setValueAtTime(0.4, now);
-            gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
-            osc2.connect(gain2);
-            gain2.connect(audioContext.destination);
-            
-            // Higher harmonic for shimmer
-            const osc3 = audioContext.createOscillator();
-            const gain3 = audioContext.createGain();
-            osc3.type = 'sine';
-            osc3.frequency.setValueAtTime(1020, now);
-            gain3.gain.setValueAtTime(0.2, now);
-            gain3.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
-            osc3.connect(gain3);
-            gain3.connect(audioContext.destination);
-            
-            // Add a subtle attack transient for more "bell strike" feel
-            const osc4 = audioContext.createOscillator();
-            const gain4 = audioContext.createGain();
-            osc4.type = 'triangle';
-            osc4.frequency.setValueAtTime(1800, now);
-            gain4.gain.setValueAtTime(0.3, now);
-            gain4.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-            osc4.connect(gain4);
-            gain4.connect(audioContext.destination);
-            
-            osc1.start(now);
-            osc2.start(now);
-            osc3.start(now);
-            osc4.start(now);
-            osc1.stop(now + 4);
-            osc2.stop(now + 2.5);
-            osc3.stop(now + 1.5);
-            osc4.stop(now + 0.15);
-            
+
+            // Compressor to prevent clipping from 8 summed oscillators
+            const comp = audioContext.createDynamicsCompressor();
+            comp.threshold.setValueAtTime(-10, now);
+            comp.ratio.setValueAtTime(4, now);
+            comp.connect(audioContext.destination);
+
+            // Helper: create an oscillator with bloom envelope (ramp to 70% in 5ms, swell to 100% by 150ms, then decay)
+            function bloomOsc(type, freq, peakGain, decayTime, stopTime) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, now);
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(peakGain * 0.7, now + 0.005);
+                gain.gain.linearRampToValueAtTime(peakGain, now + 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + decayTime);
+                osc.connect(gain);
+                gain.connect(comp);
+                osc.start(now);
+                osc.stop(now + stopTime);
+            }
+
+            // 1. Fundamental
+            bloomOsc('sine', 350, 0.8, 6.0, 6.5);
+            // 2. Beating partner (+3Hz)
+            bloomOsc('sine', 353, 0.7, 6.0, 6.5);
+            // 3. Partial 1.48x
+            bloomOsc('sine', 518, 0.45, 4.5, 5.0);
+            // 4. Partial 1.83x
+            bloomOsc('sine', 641, 0.35, 3.5, 4.0);
+            // 5. Partial 2.37x
+            bloomOsc('sine', 830, 0.25, 3.0, 3.5);
+            // 6. Beat partner to #5 (+5Hz)
+            bloomOsc('sine', 835, 0.20, 3.0, 3.5);
+            // 7. High metallic partial 2.92x
+            bloomOsc('sine', 1022, 0.15, 2.0, 2.5);
+
+            // 8. Strike transient -- triangle wave sweeping 1500->800Hz
+            const oscStrike = audioContext.createOscillator();
+            const gainStrike = audioContext.createGain();
+            oscStrike.type = 'triangle';
+            oscStrike.frequency.setValueAtTime(1500, now);
+            oscStrike.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+            gainStrike.gain.setValueAtTime(0.50, now);
+            gainStrike.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            oscStrike.connect(gainStrike);
+            gainStrike.connect(comp);
+            oscStrike.start(now);
+            oscStrike.stop(now + 0.3);
+
             triggerBellFlash();
         }
 
-        // Light bell for intervals (increased volume)
+        // Light bell for intervals -- upward sweep contrasts with gong
         function playLightBell() {
             initAudio();
             const now = audioContext.currentTime;
-            
-            // Main tone - higher, lighter
+
+            // Main tone - sweeps upward 620->635Hz
             const osc1 = audioContext.createOscillator();
             const gain1 = audioContext.createGain();
             osc1.type = 'sine';
             osc1.frequency.setValueAtTime(620, now);
-            osc1.frequency.exponentialRampToValueAtTime(580, now + 1.5);
-            gain1.gain.setValueAtTime(0.5, now);
-            gain1.gain.exponentialRampToValueAtTime(0.001, now + 2);
+            osc1.frequency.exponentialRampToValueAtTime(635, now + 1.8);
+            gain1.gain.setValueAtTime(0.4, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
             osc1.connect(gain1);
             gain1.connect(audioContext.destination);
-            
+
             // Overtone
             const osc2 = audioContext.createOscillator();
             const gain2 = audioContext.createGain();
             osc2.type = 'sine';
             osc2.frequency.setValueAtTime(930, now);
-            gain2.gain.setValueAtTime(0.25, now);
-            gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+            gain2.gain.setValueAtTime(0.2, now);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
             osc2.connect(gain2);
             gain2.connect(audioContext.destination);
-            
+
             // High shimmer
             const osc3 = audioContext.createOscillator();
             const gain3 = audioContext.createGain();
             osc3.type = 'sine';
             osc3.frequency.setValueAtTime(1240, now);
-            gain3.gain.setValueAtTime(0.15, now);
-            gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            gain3.gain.setValueAtTime(0.12, now);
+            gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
             osc3.connect(gain3);
             gain3.connect(audioContext.destination);
-            
+
+            // Crystal ping - bright "ting" attack
+            const osc4 = audioContext.createOscillator();
+            const gain4 = audioContext.createGain();
+            osc4.type = 'sine';
+            osc4.frequency.setValueAtTime(2480, now);
+            gain4.gain.setValueAtTime(0.15, now);
+            gain4.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            osc4.connect(gain4);
+            gain4.connect(audioContext.destination);
+
             osc1.start(now);
             osc2.start(now);
             osc3.start(now);
-            osc1.stop(now + 2);
+            osc4.start(now);
+            osc1.stop(now + 2.0);
             osc2.stop(now + 1.2);
             osc3.stop(now + 0.8);
-            
+            osc4.stop(now + 0.15);
+
             triggerBellFlash();
         }
 
@@ -642,7 +653,7 @@
             updateTimerDisplay();
             
             // Play start bell
-            playDeepBell();
+            playGong();
             
             timerInterval = setInterval(() => {
                 timeRemaining--;
@@ -668,7 +679,7 @@
             timerInterval = null;
             
             if (completed) {
-                playDeepBell();
+                playGong();
                 app.classList.remove('session-active');
                 app.classList.add('session-complete');
             } else {
