@@ -474,16 +474,21 @@
             }
         }
 
-        // Loud gong for start/end -- 8 oscillators with inharmonic partials
+        // Gong -- 8 oscillators with inharmonic partials
         function playGong() {
             initAudio();
             const now = audioContext.currentTime;
 
-            // Compressor to prevent clipping from 8 summed oscillators
+            // Master gain to prevent clipping
+            const masterGain = audioContext.createGain();
+            masterGain.gain.setValueAtTime(0.35, now);
+            masterGain.connect(audioContext.destination);
+
+            // Compressor for dynamics control
             const comp = audioContext.createDynamicsCompressor();
-            comp.threshold.setValueAtTime(-10, now);
-            comp.ratio.setValueAtTime(4, now);
-            comp.connect(audioContext.destination);
+            comp.threshold.setValueAtTime(-12, now);
+            comp.ratio.setValueAtTime(6, now);
+            comp.connect(masterGain);
 
             // Helper: create an oscillator with bloom envelope (ramp to 70% in 5ms, swell to 100% by 150ms, then decay)
             function bloomOsc(type, freq, peakGain, decayTime, stopTime) {
@@ -528,64 +533,6 @@
             gainStrike.connect(comp);
             oscStrike.start(now);
             oscStrike.stop(now + 0.3);
-
-            triggerBellFlash();
-        }
-
-        // Light bell for intervals -- upward sweep contrasts with gong
-        function playLightBell() {
-            initAudio();
-            const now = audioContext.currentTime;
-
-            // Main tone - sweeps upward 620->635Hz
-            const osc1 = audioContext.createOscillator();
-            const gain1 = audioContext.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(620, now);
-            osc1.frequency.exponentialRampToValueAtTime(635, now + 1.8);
-            gain1.gain.setValueAtTime(0.4, now);
-            gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
-            osc1.connect(gain1);
-            gain1.connect(audioContext.destination);
-
-            // Overtone
-            const osc2 = audioContext.createOscillator();
-            const gain2 = audioContext.createGain();
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(930, now);
-            gain2.gain.setValueAtTime(0.2, now);
-            gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
-            osc2.connect(gain2);
-            gain2.connect(audioContext.destination);
-
-            // High shimmer
-            const osc3 = audioContext.createOscillator();
-            const gain3 = audioContext.createGain();
-            osc3.type = 'sine';
-            osc3.frequency.setValueAtTime(1240, now);
-            gain3.gain.setValueAtTime(0.12, now);
-            gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-            osc3.connect(gain3);
-            gain3.connect(audioContext.destination);
-
-            // Crystal ping - bright "ting" attack
-            const osc4 = audioContext.createOscillator();
-            const gain4 = audioContext.createGain();
-            osc4.type = 'sine';
-            osc4.frequency.setValueAtTime(2480, now);
-            gain4.gain.setValueAtTime(0.15, now);
-            gain4.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-            osc4.connect(gain4);
-            gain4.connect(audioContext.destination);
-
-            osc1.start(now);
-            osc2.start(now);
-            osc3.start(now);
-            osc4.start(now);
-            osc1.stop(now + 2.0);
-            osc2.stop(now + 1.2);
-            osc3.stop(now + 0.8);
-            osc4.stop(now + 0.15);
 
             triggerBellFlash();
         }
@@ -666,7 +613,7 @@
                 // Check for minute intervals (play bell at each minute mark)
                 const currentMinute = Math.ceil(timeRemaining / 60);
                 if (currentMinute < lastMinute && timeRemaining > 0) {
-                    playLightBell();
+                    playGong();
                     lastMinute = currentMinute;
                 }
                 
@@ -680,6 +627,7 @@
             
             if (completed) {
                 playGong();
+                setTimeout(() => playGong(), 3000);
                 app.classList.remove('session-active');
                 app.classList.add('session-complete');
             } else {
